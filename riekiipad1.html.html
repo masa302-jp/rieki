@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>損益算トレーナー</title>
+<style>
+  * { box-sizing:border-box; }
+  body {
+    margin:0;
+    background:linear-gradient(160deg,#FFF8E1,#FFE082);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    color:#333;
+  }
+  .app { max-width:1100px; margin:0 auto; padding:20px 24px 32px; }
+  h1 { text-align:center; color:#BF360C; margin:0 0 10px; font-size:30px; }
+  .problemNav { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; background:rgba(255,255,255,.65); padding:10px; border-radius:16px; margin-bottom:10px; }
+  .problemNav button { border:2px solid #ddd; background:white; border-radius:10px; padding:9px 13px; font-weight:900; cursor:pointer; font-size:15px; }
+  .problemNav button.active { background:#F57C00; color:white; border-color:#E65100; box-shadow:0 0 0 3px #F57C0033; }
+  .topControls { display:grid; grid-template-columns:1fr 360px; gap:14px; align-items:stretch; margin-bottom:14px; }
+  .card { background:white; border-radius:16px; box-shadow:0 3px 14px rgba(0,0,0,.10); padding:14px 16px; }
+  .titleRow { display:flex; gap:12px; align-items:center; margin-bottom:8px; }
+  .emojiTitle { font-size:42px; }
+  .problemTitle { font-size:22px; font-weight:900; }
+  .level { color:#777; font-size:13px; font-weight:800; }
+  .story { background:#FFFDE7; border:1px solid #FFE082; padding:12px; border-radius:12px; line-height:1.75; font-weight:700; }
+  .speedPanel label { display:flex; justify-content:space-between; font-weight:900; color:#6D4C41; margin-bottom:8px; }
+  input[type=range] { width:100%; accent-color:#F57C00; }
+  .scene {
+    position:relative; height:520px; border-radius:22px; overflow:hidden;
+    background:linear-gradient(to bottom,#64B5F6 0%,#B3E5FC 48%,#AED581 48%,#8BC34A 100%);
+    border:3px solid rgba(255,255,255,.85); box-shadow:0 5px 20px rgba(0,0,0,.20);
+  }
+  .sky { position:absolute; top:14px; font-size:30px; }
+  .phase { position:absolute; top:16px; left:18px; background:rgba(255,255,255,.9); padding:7px 12px; border-radius:12px; font-weight:900; color:#5D4037; z-index:30; }
+  .moneyPanel {
+    position:absolute; top:16px; background:rgba(255,255,255,.93); border-radius:14px; padding:10px 13px;
+    font-weight:900; box-shadow:0 2px 10px rgba(0,0,0,.15); z-index:30; line-height:1.55;
+  }
+  .costPanel { right:20px; color:#B71C1C; border:2px solid #EF9A9A; }
+  .salesPanel { left:50%; transform:translateX(-50%); color:#1B5E20; border:2px solid #81C784; min-width:260px; text-align:center; }
+  .zoneLabel { position:absolute; bottom:96px; font-size:18px; font-weight:900; background:rgba(255,255,255,.9); padding:8px 14px; border-radius:14px; z-index:15; box-shadow:0 2px 9px rgba(0,0,0,.12); }
+  .customersLabel { left:32px; color:#0D47A1; border:2px solid #90CAF9; }
+  .shopLabel { left:50%; transform:translateX(-50%); color:#E65100; border:2px solid #FFB300; }
+  .marketLabel { right:35px; color:#1B5E20; border:2px solid #66BB6A; }
+  .building { position:absolute; bottom:18px; font-size:76px; z-index:10; text-align:center; width:120px; }
+  .customerIcons { position:absolute; left:34px; bottom:128px; font-size:42px; z-index:16; }
+  .customerIcons span { display:inline-block; margin-right:12px; }
+  .buyer { position:absolute; bottom:150px; font-size:50px; z-index:21; display:none; filter:drop-shadow(1px 2px 2px rgba(0,0,0,.25)); }
+  .buyFlash { position:absolute; z-index:35; left:50%; transform:translateX(-50%); bottom:250px; font-size:30px; font-weight:900; color:#1B5E20; background:rgba(255,255,255,.93); border:2px solid #81C784; border-radius:16px; padding:8px 14px; display:none; box-shadow:0 2px 10px rgba(0,0,0,.16); }
+  .shopkeeper { position:absolute; bottom:150px; font-size:56px; z-index:20; transition:none; filter:drop-shadow(1px 2px 2px rgba(0,0,0,.25)); }
+  .path { position:absolute; left:120px; right:120px; bottom:138px; height:10px; background:rgba(121,85,72,.32); border-radius:6px; }
+  .bundle {
+    position:absolute; z-index:22; background:rgba(255,255,255,.96); border:3px solid #43A047; border-radius:18px;
+    padding:14px 18px; box-shadow:0 4px 16px rgba(0,0,0,.18); min-width:230px; text-align:center;
+  }
+  .bundleMain { display:flex; align-items:center; justify-content:center; gap:10px; font-weight:900; color:#1B5E20; }
+  .bundleIcon { font-size:54px; }
+  .bundleCount { font-size:28px; }
+  .tag { margin-top:8px; display:inline-block; padding:5px 11px; border-radius:999px; color:white; font-weight:900; font-size:15px; }
+  .tag.cost { background:#C62828; }
+  .tag.sell { background:#1565C0; }
+  .tag.leftover { background:#757575; }
+  .speech { position:absolute; z-index:32; left:50%; transform:translateX(-50%); top:96px; background:rgba(255,255,255,.97); border:2px solid #ddd; border-radius:16px; padding:10px 16px; font-weight:900; max-width:580px; text-align:center; box-shadow:0 2px 12px rgba(0,0,0,.14); }
+  .status { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:12px; }
+  .status div { background:white; border-radius:13px; padding:10px; font-weight:900; text-align:center; box-shadow:0 2px 9px rgba(0,0,0,.08); }
+  .player { background:white; border-radius:16px; padding:14px 16px; margin-top:12px; box-shadow:0 3px 14px rgba(0,0,0,.1); }
+  .playerTop { display:flex; justify-content:space-between; font-weight:900; color:#5D4037; margin-bottom:8px; }
+  .buttons { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+  .buttons button { flex:1; min-width:120px; padding:12px 10px; border-radius:12px; border:2px solid #FFE082; background:#FFF8E1; color:#E65100; font-weight:900; font-size:16px; cursor:pointer; }
+  .buttons .play { background:linear-gradient(135deg,#F57C00,#FFB300); color:white; border:0; }
+  .calc { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px; }
+  .calc div { background:white; border-radius:14px; padding:12px; font-weight:900; text-align:center; box-shadow:0 2px 9px rgba(0,0,0,.08); line-height:1.6; }
+  .stepQuiz { background:white; border-radius:18px; padding:16px; margin-top:14px; box-shadow:0 3px 14px rgba(0,0,0,.10); }
+  .stepQuiz h2 { margin:0 0 10px; color:#BF360C; font-size:22px; }
+  .stepRow { border:2px solid #eee; border-radius:14px; padding:12px; margin:10px 0; background:#FAFAFA; }
+  .stepRow.active { border-color:#FFD54F; background:#FFFDE7; }
+  .stepRow.done { border-color:#66BB6A; background:#F1F8E9; }
+  .stepRow.locked { opacity:.45; }
+  .stepRow .label { font-weight:900; margin-bottom:5px; }
+  .stepInput { display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
+  .stepInput input { width:150px; padding:10px; border-radius:10px; border:2px solid #ddd; font-size:18px; font-weight:900; }
+  .stepInput button { padding:10px 16px; border:0; border-radius:10px; background:#F57C00; color:white; font-weight:900; cursor:pointer; }
+  .resultBox { margin-top:12px; padding:14px; border-radius:14px; background:#E8F5E9; border:2px solid #66BB6A; font-weight:900; text-align:center; display:none; }
+  @media (max-width:760px) {
+    .topControls { grid-template-columns:1fr; }
+    .scene { height:560px; }
+    .status,.calc { grid-template-columns:1fr 1fr; }
+    .moneyPanel { font-size:12px; }
+    .salesPanel { top:76px; }
+    .speech { top:140px; }
+  }
+
+  .profitBuild {
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    top:180px;
+    background:rgba(255,255,255,.97);
+    border:3px solid #FFB300;
+    border-radius:20px;
+    padding:16px 22px;
+    z-index:34;
+    display:none;
+    box-shadow:0 4px 18px rgba(0,0,0,.18);
+    min-width:340px;
+    text-align:center;
+  }
+  .profitBuild .formula {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    font-weight:900;
+    margin-top:8px;
+  }
+  .profitBuild .num {
+    font-size:34px;
+    padding:10px 14px;
+    border-radius:14px;
+    min-width:86px;
+  }
+  .profitBuild .cost { background:#ECEFF1; color:#37474F; }
+  .profitBuild .profit { background:#FFF3E0; color:#E65100; }
+  .profitBuild .sell { background:#E3F2FD; color:#1565C0; }
+  .profitBuild .symbol {
+    font-size:34px;
+    font-weight:900;
+    color:#6D4C41;
+  }
+  .profitBuild .caption {
+    font-size:18px;
+    font-weight:900;
+    color:#BF360C;
+  }
+
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>🏪 損益算トレーナー</h1>
+  <div class="problemNav" id="problemNav"></div>
+
+  <div class="topControls">
+    <div class="card">
+      <div class="titleRow">
+        <div class="emojiTitle" id="emojiTitle"></div>
+        <div>
+          <div class="problemTitle" id="problemTitle"></div>
+          <div class="level" id="level"></div>
+        </div>
+      </div>
+      <div class="story" id="story"></div>
+    </div>
+    <div class="card speedPanel">
+      <label><span>🎬 アニメ速度</span><span id="speedText">ゆっくり ×0.5</span></label>
+      <input id="speed" type="range" min="0.25" max="1.5" step="0.25" value="0.5" />
+      <div style="font-size:13px;color:#777;font-weight:800;margin-top:8px;line-height:1.6">
+        まずはゆっくりがおすすめ。途中で止めたり、戻したりできます。
+      </div>
+    </div>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="sky" style="left:18px">☀️</div>
+    <div class="sky" style="left:82px;top:30px;font-size:20px">⛅</div>
+    <div class="sky" style="right:90px;top:22px;font-size:22px">☁️</div>
+
+    <div class="phase" id="phase">準備</div>
+    <div class="moneyPanel salesPanel" id="salesPanel">💰 売上：0円</div>
+    <div class="moneyPanel costPanel" id="costPanel">📦 仕入れ：まだ</div>
+    <div class="moneyPanel" id="tierPanel" style="left:20px;top:68px;color:#0D47A1;border:2px solid #90CAF9;display:none;">販売中</div>
+    <div class="speech" id="speech">市場に仕入れに行こう</div>
+
+    <div class="profitBuild" id="profitBuild">
+      <div class="caption">💡 利益をのせて定価を決める</div>
+      <div class="formula">
+        <div class="num cost" id="pbCost">80円</div>
+        <div class="symbol">＋</div>
+        <div class="num profit" id="pbProfit">20円</div>
+        <div class="symbol">＝</div>
+        <div class="num sell" id="pbSell">100円</div>
+      </div>
+    </div>
+
+    <div class="path"></div>
+
+    <div class="zoneLabel customersLabel">👥 お客様</div>
+    <div class="zoneLabel shopLabel">🏪 お店</div>
+    <div class="zoneLabel marketLabel">🏬 市場</div>
+
+    <div class="building" style="left:50%;transform:translateX(-50%)">🏪</div>
+    <div class="building" style="right:34px">🏬</div>
+    <div class="customerIcons"><span>👩</span><span>👦</span><span>🧓</span></div>
+
+    <div class="shopkeeper" id="keeper">🧑‍💼</div>
+    <div class="buyer" id="buyer">👩</div>
+    <div class="buyFlash" id="buyFlash">＋0円</div>
+    <div class="bundle" id="bundle">
+      <div class="bundleMain"><span class="bundleIcon" id="bundleIcon">🍎</span><span class="bundleCount" id="bundleCount">×20</span></div>
+      <div class="tag cost" id="tag">仕入 80円</div>
+    </div>
+  </div>
+
+  <div class="status">
+    <div id="sBought">仕入れ：0個</div>
+    <div id="sSold">売れた：0個</div>
+    <div id="sLeft">残り：0個</div>
+    <div id="sMoney">今のお金：0円</div>
+  </div>
+
+  <div class="player">
+    <div class="playerTop"><span>🎞️ アニメ操作</span><span id="timeText">0.0秒 / 36.0秒</span></div>
+    <input id="timeline" type="range" min="0" max="42000" step="100" value="0" />
+    <div class="buttons">
+      <button id="back">⏪ 3秒戻る</button>
+      <button id="play" class="play">▶️ 再生</button>
+      <button id="forward">3秒進む ⏩</button>
+      <button id="start">🔁 最初へ</button>
+      <button id="end">⏭ 最後へ</button>
+    </div>
+  </div>
+
+  <div class="calc">
+    <div id="calcCost"></div>
+    <div id="calcSales"></div>
+    <div id="calcProfit"></div>
+  </div>
+
+  <div class="stepQuiz">
+    <h2>📝 ステップで計算してみよう</h2>
+    <div id="steps"></div>
+    <div class="resultBox" id="resultBox"></div>
+  </div>
+</div>
+
+<script>
+const PROBLEMS = [{"id": 1, "levelLabel": "⭐ レベル１", "levelNum": 1, "title": "りんご売り場", "emoji": "🍎", "story": "りんごを1個80円で20個仕入れ、1個120円で18個売りました。残りは腐って捨てました。このとき、利益は何円ですか？", "costPer": 80, "totalBought": 20, "sales": [{"price": 120, "count": 18, "label": "定価売り", "color": "#2E7D32"}], "wasted": 2, "insight": "💡 腐って捨てた2個も仕入れ費用に含まれます。「買った全部の数」がコストです！"}, {"id": 2, "levelLabel": "⭐ レベル１", "levelNum": 1, "title": "あめ屋さん", "emoji": "🍬", "story": "あめを1個30円で15個仕入れ、1個50円で15個全部売りました。このとき、利益は何円ですか？", "costPer": 30, "totalBought": 15, "sales": [{"price": 50, "count": 15, "label": "完売！", "color": "#E91E63"}], "wasted": 0, "insight": "💡 全部売り切れ！仕入れた数＝売った数なら廃棄のロスはゼロです。"}, {"id": 3, "levelLabel": "⭐ レベル１", "levelNum": 1, "title": "たまご売り場", "emoji": "🥚", "story": "たまごを1個100円で8個仕入れ、1個150円で6個売りました。残り2個は割れてしまいました。このとき、利益は何円ですか？", "costPer": 100, "totalBought": 8, "sales": [{"price": 150, "count": 6, "label": "定価売り", "color": "#F57C00"}], "wasted": 2, "insight": "💡 割れた2個も仕入れ費用に含まれます。売れなかった分もコストになります！"}, {"id": 4, "levelLabel": "⭐ レベル１", "levelNum": 1, "title": "とうもろこし屋さん", "emoji": "🌽", "story": "とうもろこしを1本70円で12本仕入れ、1本110円で10本売りました。残り2本は捨てました。このとき、利益は何円ですか？", "costPer": 70, "totalBought": 12, "sales": [{"price": 110, "count": 10, "label": "定価売り", "color": "#F9A825"}], "wasted": 2, "insight": "💡 1本あたり40円の利益ですが、2本捨てた分(140円)がロスになります。"}, {"id": 5, "levelLabel": "⭐ レベル１", "levelNum": 1, "title": "パン屋さん", "emoji": "🍞", "story": "パンを1個60円で30個仕入れ、1個100円で25個売りました。残り5個は捨てました。このとき、利益は何円ですか？", "costPer": 60, "totalBought": 30, "sales": [{"price": 100, "count": 25, "label": "定価売り", "color": "#795548"}], "wasted": 5, "insight": "💡 捨てた5個分(300円)もコストに含まれます。売れた分の利益からこの損が引かれます！"}, {"id": 6, "levelLabel": "⭐ レベル１", "levelNum": 1, "title": "バナナ売り場", "emoji": "🍌", "story": "バナナを1本40円で20本仕入れ、1本70円で20本全部売りました。このとき、利益は何円ですか？", "costPer": 40, "totalBought": 20, "sales": [{"price": 70, "count": 20, "label": "完売！", "color": "#FBC02D"}], "wasted": 0, "insight": "💡 完売！廃棄なし。1本あたり30円の利益が20本分そのまま利益になります。"}, {"id": 7, "levelLabel": "⭐⭐ レベル２", "levelNum": 2, "title": "みかん市場", "emoji": "🍊", "story": "みかんを1個50円で30個仕入れ、1個90円で20個売りました。残り10個は1個40円で売りました。このとき、利益は何円ですか？", "costPer": 50, "totalBought": 30, "sales": [{"price": 90, "count": 20, "label": "定価売り", "color": "#BF360C"}, {"price": 40, "count": 10, "label": "値引き売り", "color": "#F57F17"}], "wasted": 0, "insight": "💡 2種類の値段で売るときは、それぞれの売上を計算してから足し合わせます！"}, {"id": 8, "levelLabel": "⭐⭐ レベル２", "levelNum": 2, "title": "カード屋さん", "emoji": "🃏", "story": "カードを1枚60円で100枚仕入れ、1枚20円の利益を見込んで定価をつけました。70枚は定価で売り、残り30枚は1枚50円で売りました。このとき、利益は何円ですか？", "costPer": 60, "totalBought": 100, "pricingNote": "定価 ＝ 仕入れ値60円 ＋ 利益20円 ＝ 80円", "sales": [{"price": 80, "count": 70, "label": "定価売り", "color": "#1565C0"}, {"price": 50, "count": 30, "label": "値引き売り", "color": "#E65100"}], "wasted": 0, "insight": "💡 2段階の売り方！それぞれの売上を計算してから合計します。"}, {"id": 9, "levelLabel": "⭐⭐⭐ レベル３", "levelNum": 3, "title": "本屋さん（赤字！）", "emoji": "📚", "story": "本を1冊200円で20冊仕入れ、1冊300円で8冊売りました。残り12冊は1冊100円でセール販売しました。利益は何円ですか？（マイナスになることもある！）", "costPer": 200, "totalBought": 20, "sales": [{"price": 300, "count": 8, "label": "定価売り", "color": "#4A148C"}, {"price": 100, "count": 12, "label": "セール売り", "color": "#B71C1C"}], "wasted": 0, "insight": "💸 利益がマイナス！これを「損失」といいます。仕入れすぎや値下げしすぎに注意！"}, {"id": 10, "levelLabel": "⭐⭐⭐ レベル３", "levelNum": 3, "title": "ゲームソフト屋さん", "emoji": "🎮", "story": "ゲームソフトを1本3000円で10本仕入れ、1本4000円で6本売りました。残り3本は1本2000円で売り、1本は売れ残りました。このとき、利益は何円ですか？", "costPer": 3000, "totalBought": 10, "sales": [{"price": 4000, "count": 6, "label": "定価売り", "color": "#1A237E"}, {"price": 2000, "count": 3, "label": "値引き売り", "color": "#2E7D32"}], "wasted": 1, "insight": "🎯 ちょうど0円！「損益ゼロ（とんとん）」です。売れ残りがあるとギリギリになりますね。"}
+,
+  {
+    "title":"ノートを仕入れて利益をのせる",
+    "levelLabel":"🟢 レベル1",
+    "levelNum":1,
+    "emoji":"📓",
+    "story":"1冊80円で仕入れたノートに、1冊20円の利益を見込んで定価をつけました。15冊売れました。",
+    "costPer":80,
+    "totalBought":15,
+    "sales":[
+      {"count":15,"price":100,"label":"定価販売","color":"#1976D2"}
+    ],
+    "wasted":0
+  },
+  {
+    "title":"ジュースに利益をのせる",
+    "levelLabel":"🟢 レベル1",
+    "levelNum":1,
+    "emoji":"🧃",
+    "story":"1本60円で仕入れたジュースに、1本30円の利益を見込んで定価をつけました。20本売れました。",
+    "costPer":60,
+    "totalBought":20,
+    "sales":[
+      {"count":20,"price":90,"label":"定価販売","color":"#1976D2"}
+    ],
+    "wasted":0
+  },
+  {
+    "title":"パンを値引きして売る",
+    "levelLabel":"🔵 レベル2",
+    "levelNum":2,
+    "emoji":"🥐",
+    "story":"1個120円で仕入れたパンに、1個40円の利益を見込んで160円の定価をつけました。最初に8個売れ、残り4個は120円で売りました。",
+    "costPer":120,
+    "totalBought":12,
+    "sales":[
+      {"count":8,"price":160,"label":"定価販売","color":"#1976D2"},
+      {"count":4,"price":120,"label":"値引き販売","color":"#C62828"}
+    ],
+    "wasted":0
+  },
+  {
+    "title":"ケーキを値引き販売",
+    "levelLabel":"🔵 レベル2",
+    "levelNum":2,
+    "emoji":"🍰",
+    "story":"1個200円で仕入れたケーキに、1個80円の利益を見込んで280円の定価をつけました。6個は定価で売れ、残り3個は220円で売りました。",
+    "costPer":200,
+    "totalBought":9,
+    "sales":[
+      {"count":6,"price":280,"label":"定価販売","color":"#1976D2"},
+      {"count":3,"price":220,"label":"値引き販売","color":"#C62828"}
+    ],
+    "wasted":0
+  },
+  {
+    "title":"おもちゃを利益つきで販売",
+    "levelLabel":"🔵 レベル2",
+    "levelNum":2,
+    "emoji":"🧸",
+    "story":"1個500円で仕入れたおもちゃに、1個150円の利益を見込んで650円の定価をつけました。7個売れました。",
+    "costPer":500,
+    "totalBought":7,
+    "sales":[
+      {"count":7,"price":650,"label":"定価販売","color":"#1976D2"}
+    ],
+    "wasted":0
+  },
+  {
+    "title":"花を最後に値下げ",
+    "levelLabel":"🔴 レベル3",
+    "levelNum":3,
+    "emoji":"🌸",
+    "story":"1本300円で仕入れた花に、1本100円の利益を見込んで400円の定価をつけました。10本は定価で売れましたが、残り5本は250円で売りました。",
+    "costPer":300,
+    "totalBought":15,
+    "sales":[
+      {"count":10,"price":400,"label":"定価販売","color":"#1976D2"},
+      {"count":5,"price":250,"label":"値引き販売","color":"#C62828"}
+    ],
+    "wasted":0
+  }
+
+];
+
+const DURATION = 42000;
+const T = {
+  WALK_TO_END: 7000,
+  BUY_END: 12000,
+  WALK_HOME_END: 20000,
+  TAG_END: 28000,
+  SELL_END: 40000,
+  DONE: 42000
+};
+
+let idx = 0;
+let t = 0;
+let playing = false;
+let lastTs = null;
+let speed = 0.5;
+
+const el = id => document.getElementById(id);
+const fmt = n => Number(n).toLocaleString();
+const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+const lerp = (a,b,p)=>a+(b-a)*p;
+const ease = p => p < .5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+
+function calc(p) {
+  const cost = p.costPer * p.totalBought;
+  const sales = p.sales.reduce((s,x)=>s+x.price*x.count,0);
+  const soldCount = p.sales.reduce((s,x)=>s+x.count,0);
+  return { cost, sales, soldCount, left:p.totalBought-soldCount, profit:sales-cost };
+}
+
+function phaseOf(time) {
+  if (time < T.WALK_TO_END) return "walk_to";
+  if (time < T.BUY_END) return "buy";
+  if (time < T.WALK_HOME_END) return "walk_home";
+  if (time < T.TAG_END) return "tag";
+  if (time < T.SELL_END) return "sell";
+  return "done";
+}
+
+function soldAt(time, p) {
+  const c = calc(p);
+  if (time < T.TAG_END) return 0;
+  if (time >= T.SELL_END) return c.soldCount;
+  const ratio = (time - T.TAG_END) / (T.SELL_END - T.TAG_END);
+  return Math.floor(c.soldCount * ratio);
+}
+
+function revenueAt(units, p) {
+  let left = units, money = 0;
+  for (const s of p.sales) {
+    const n = Math.min(left, s.count);
+    money += n * s.price;
+    left -= n;
+    if (left <= 0) break;
+  }
+  return money;
+}
+
+function currentPriceForSold(units, p) {
+  let left = Math.max(1, units);
+  for (const s of p.sales) {
+    if (left <= s.count) return s.price;
+    left -= s.count;
+  }
+  return p.sales[p.sales.length-1].price;
+}
+
+function currentTierForSold(units, p) {
+  let left = Math.max(1, units);
+  let before = 0;
+  for (let i=0; i<p.sales.length; i++) {
+    const s = p.sales[i];
+    if (left <= s.count) return { index:i, sale:s, before, inTier:left };
+    before += s.count;
+    left -= s.count;
+  }
+  const last = p.sales[p.sales.length-1];
+  return { index:p.sales.length-1, sale:last, before:before-last.count, inTier:last.count };
+}
+
+function renderNav() {
+  el("problemNav").innerHTML = "";
+  PROBLEMS.forEach((p,i)=>{
+    const b = document.createElement("button");
+    b.textContent = "問" + (i+1);
+    b.className = i===idx ? "active" : "";
+    b.onclick = () => { idx=i; t=0; playing=false; lastTs=null; stepDone=0; renderAll(); };
+    el("problemNav").appendChild(b);
+  });
+}
+
+function renderStatic() {
+  const p = PROBLEMS[idx];
+  el("emojiTitle").textContent = p.emoji;
+  el("problemTitle").textContent = p.title;
+  el("level").textContent = p.levelLabel + "　問題 " + (idx+1) + "/" + PROBLEMS.length;
+  el("story").textContent = p.story;
+  el("bundleIcon").textContent = p.emoji;
+  const c = calc(p);
+  el("calcCost").innerHTML = `📦 仕入れ総額<br>${fmt(p.costPer)}円 × ${p.totalBought}個 = <b>${fmt(c.cost)}円</b>`;
+  el("calcSales").innerHTML = "💰 売上合計<br>" + p.sales.map(s=>`${fmt(s.price)}円×${s.count}個`).join(" ＋ ") + ` = <b>${fmt(c.sales)}円</b>`;
+  el("calcProfit").innerHTML = `🎯 利益<br>${fmt(c.sales)}円 − ${fmt(c.cost)}円 = <b>${fmt(c.profit)}円</b>`;
+}
+
+function renderFrame() {
+  const p = PROBLEMS[idx], c = calc(p), ph = phaseOf(t);
+  const scene = el("scene");
+  const W = scene.clientWidth || 1000;
+
+  const shopX = W * 0.50;
+  const marketX = W - 120;
+  const customerX = 120;
+
+  let keeperX = shopX;
+  if (ph === "walk_to") keeperX = lerp(shopX, marketX, ease(t/T.WALK_TO_END));
+  else if (ph === "buy") keeperX = marketX;
+  else if (ph === "walk_home") keeperX = lerp(marketX, shopX, ease((t-T.BUY_END)/(T.WALK_HOME_END-T.BUY_END)));
+  else if (ph === "sell") keeperX = shopX - 90;
+  else keeperX = shopX;
+
+  const keeper = el("keeper");
+  keeper.style.left = (keeperX - 28) + "px";
+  keeper.style.transform = (ph === "walk_home" || ph === "sell") ? "scaleX(-1)" : "scaleX(1)";
+
+  let bundleX = shopX - 115;
+  let bundleVisible = true;
+  if (ph === "walk_to") { bundleVisible = false; bundleX = shopX - 115; }
+  else if (ph === "buy") bundleX = marketX - 120;
+  else if (ph === "walk_home") bundleX = lerp(marketX - 120, shopX - 115, ease((t-T.BUY_END)/(T.WALK_HOME_END-T.BUY_END)));
+  else if (ph === "sell") bundleX = shopX - 115;
+  else bundleX = shopX - 115;
+
+  const bundle = el("bundle");
+  bundle.style.display = bundleVisible ? "block" : "none";
+  bundle.style.left = bundleX + "px";
+  bundle.style.bottom = "190px";
+
+  const buyer = el("buyer");
+  const buyFlash = el("buyFlash");
+  if (ph === "sell") {
+    const sellRatio = (t - T.TAG_END) / (T.SELL_END - T.TAG_END);
+    const cycle = (sellRatio * 6) % 1;
+    const buyerEmojis = ["👩","👦","🧓","👧","🧑","👩‍🦱"];
+    buyer.textContent = buyerEmojis[Math.floor(sellRatio * 6) % buyerEmojis.length];
+    const bx = cycle < 0.5
+      ? lerp(customerX, shopX - 70, ease(cycle/0.5))
+      : lerp(shopX - 70, customerX, ease((cycle-0.5)/0.5));
+    buyer.style.display = "block";
+    buyer.style.left = (bx - 25) + "px";
+    buyer.style.transform = "scaleX(1)";
+    buyFlash.style.display = cycle > 0.42 && cycle < 0.62 ? "block" : "none";
+  } else {
+    buyer.style.display = "none";
+    buyFlash.style.display = "none";
+  }
+
+  const soldUnits = soldAt(t,p);
+  const revenue = revenueAt(soldUnits,p);
+  const tier = currentTierForSold(Math.max(1, soldUnits + 1), p);
+  const currentSellPrice = currentPriceForSold(Math.max(1,soldUnits + 1),p);
+  buyFlash.textContent = `＋${fmt(currentSellPrice)}円`;
+
+  const tierPanel = el("tierPanel");
+  if (ph === "sell" || ph === "done") {
+    if (p.sales.length > 1) {
+      const soldInTier = ph === "done"
+        ? tier.sale.count
+        : Math.max(0, Math.min(tier.sale.count, soldUnits - tier.before));
+      tierPanel.style.display = "block";
+      tierPanel.innerHTML = `🏷️ ${tier.sale.label}<br>${fmt(tier.sale.price)}円 × ${soldInTier}/${tier.sale.count}個`;
+    } else {
+      tierPanel.style.display = "none";
+    }
+  } else {
+    tierPanel.style.display = "none";
+  }
+
+  if (ph === "sell") {
+    if (p.sales.length > 1) {
+      const leftInTier = Math.max(0, tier.sale.count - Math.max(0, Math.min(tier.sale.count, soldUnits - tier.before)));
+      el("bundleCount").textContent = `${tier.sale.label} ×${leftInTier}`;
+    } else {
+      el("bundleCount").textContent = `×${Math.max(0, c.soldCount - soldUnits)}`;
+    }
+  } else if (ph === "done") {
+    el("bundleCount").textContent = `売れ残り ×${p.wasted || 0}`;
+  } else {
+    el("bundleCount").textContent = `×${p.totalBought}`;
+  }
+
+  const tag = el("tag");
+  if (ph === "buy" || ph === "walk_home") {
+    tag.textContent = `仕入 ${fmt(p.costPer)}円`;
+    tag.className = "tag cost";
+  } else if (ph === "tag") {
+    tag.textContent = `利益をのせて ${fmt(p.sales[0].price)}円`;
+    tag.className = "tag sell";
+  } else if (ph === "done") {
+    tag.textContent = (p.wasted || 0) > 0 ? "売れ残り" : "完売";
+    tag.className = "tag " + ((p.wasted || 0) > 0 ? "leftover" : "sell");
+  } else {
+    tag.textContent = p.sales.length > 1
+      ? `${tier.sale.label} ${fmt(currentSellPrice)}円`
+      : `売値 ${fmt(currentSellPrice)}円`;
+    tag.className = "tag sell";
+  }
+
+
+  // Profit build animation
+  const pb = el("profitBuild");
+  const pbCost = el("pbCost");
+  const pbProfit = el("pbProfit");
+  const pbSell = el("pbSell");
+
+  const sellPrice = p.sales[0].price;
+  const expectedProfit = sellPrice - p.costPer;
+
+  pbCost.textContent = `${fmt(p.costPer)}円`;
+  pbProfit.textContent = `${fmt(expectedProfit)}円`;
+  pbSell.textContent = `${fmt(sellPrice)}円`;
+
+  if (ph === "tag") {
+    pb.style.display = "block";
+    const ratio = (t - T.WALK_HOME_END) / (T.TAG_END - T.WALK_HOME_END);
+
+    if (ratio < 0.33) {
+      pbProfit.style.opacity = "0";
+      pbSell.style.opacity = "0";
+    } else if (ratio < 0.66) {
+      pbProfit.style.opacity = "1";
+      pbSell.style.opacity = "0";
+    } else {
+      pbProfit.style.opacity = "1";
+      pbSell.style.opacity = "1";
+    }
+  } else {
+    pb.style.display = "none";
+  }
+
+  const phaseText = {
+    walk_to:"🛒 お店から市場へ",
+    buy:"📦 仕入れ中",
+    walk_home:"🚶 仕入れ品をお店へ運ぶ",
+    tag:"🏷️ 値札を売値に変える",
+    sell:"🤝 お客様に売る",
+    done:"✅ 完了"
+  }[ph];
+  el("phase").textContent = phaseText;
+
+  let speech = "";
+  if (ph === "walk_to") speech = "まず市場へ仕入れに行きます。";
+  if (ph === "buy") speech = `${p.emoji}を ${fmt(p.costPer)}円で ${p.totalBought}個 仕入れます。仕入れ総額は ${fmt(c.cost)}円。`;
+  if (ph === "walk_home") speech = "仕入れたものを、そのままお店へ運びます。";
+  if (ph === "tag") {
+    const profit = p.sales[0].price - p.costPer;
+    speech = `1個 ${fmt(profit)}円 の利益をのせて、${fmt(p.sales[0].price)}円の定価をつけます。`;
+  }
+  if (ph === "sell") {
+    if (p.sales.length > 1) {
+      speech = `いまは「${tier.sale.label}」で ${fmt(tier.sale.price)}円。${tier.sale.count}個のうち ${Math.max(0, Math.min(tier.sale.count, soldUnits - tier.before))}個 売れました。`;
+    } else {
+      speech = `売るたびに売上が増えます。今は ${soldUnits}個 売れました。`;
+    }
+  }
+  if (ph === "done") speech = `最後に、売上 ${fmt(c.sales)}円 − 仕入れ ${fmt(c.cost)}円 = ${fmt(c.profit)}円。`;
+  el("speech").textContent = speech;
+
+  el("costPanel").innerHTML = ph === "walk_to"
+    ? "📦 仕入れ：まだ"
+    : `📦 仕入れ<br>${fmt(p.costPer)}円 × ${p.totalBought}個 = ${fmt(c.cost)}円<br>👛 支払い −${fmt(c.cost)}円`;
+  let salesBreak = "";
+  if (p.sales.length > 1 && (ph === "sell" || ph === "done")) {
+    let remainingSold = soldUnits;
+    salesBreak = p.sales.map(s => {
+      const n = Math.max(0, Math.min(s.count, remainingSold));
+      remainingSold -= n;
+      return `${fmt(s.price)}円×${n}/${s.count}`;
+    }).join("<br>");
+  }
+  el("salesPanel").innerHTML = p.sales.length > 1 && (ph === "sell" || ph === "done")
+    ? `💰 売上<br>${salesBreak}<br>＋${fmt(revenue)}円`
+    : `💰 売上<br>${soldUnits} / ${c.soldCount}個 売れた<br>＋${fmt(revenue)}円`;
+
+  const remaining = Math.max(0, p.totalBought - soldUnits);
+  const cash = revenue - (ph === "walk_to" ? 0 : c.cost);
+  el("sBought").textContent = `仕入れ：${p.totalBought}個`;
+  el("sSold").textContent = `売れた：${soldUnits}個`;
+  el("sLeft").textContent = `残り：${remaining}個`;
+  el("sMoney").textContent = `今のお金：${fmt(cash)}円`;
+
+  el("timeline").value = Math.round(t);
+  el("timeText").textContent = `${(t/1000).toFixed(1)}秒 / ${(DURATION/1000).toFixed(1)}秒`;
+}
+
+
+let stepDone = 0;
+
+function buildSteps(p) {
+  const c = calc(p);
+  const steps = [];
+  steps.push({
+    label:"① 仕入れ総額",
+    desc:`${fmt(p.costPer)}円 × ${p.totalBought}個`,
+    answer:c.cost
+  });
+  p.sales.forEach((s,i)=>{
+    steps.push({
+      label:`② 売上 ${p.sales.length>1 ? "その" + (i+1) : ""}`,
+      desc:`${fmt(s.price)}円 × ${s.count}個`,
+      answer:s.price*s.count
+    });
+  });
+  if (p.sales.length > 1) {
+    steps.push({
+      label:"③ 売上合計",
+      desc:p.sales.map(s=>fmt(s.price*s.count)+"円").join(" ＋ "),
+      answer:c.sales
+    });
+  }
+  steps.push({
+    label:"最後 利益",
+    desc:`${fmt(c.sales)}円 − ${fmt(c.cost)}円`,
+    answer:c.profit
+  });
+  return steps;
+}
+
+function renderSteps() {
+  const p = PROBLEMS[idx];
+  const steps = buildSteps(p);
+  const box = el("steps");
+  box.innerHTML = "";
+  steps.forEach((s,i)=>{
+    const row = document.createElement("div");
+    row.className = "stepRow " + (i < stepDone ? "done" : i === stepDone ? "active" : "locked");
+    const answered = i < stepDone;
+    row.innerHTML = `
+      <div class="label">${s.label}</div>
+      <div>${s.desc} ＝ ${answered ? `<b>${fmt(s.answer)}円 ✅</b>` : "？"}</div>
+      ${i === stepDone ? `
+        <div class="stepInput">
+          <input type="number" inputmode="numeric" placeholder="答え" id="stepAns">
+          <span>円</span>
+          <button id="stepCheck">確認</button>
+          <span id="stepMsg" style="font-weight:900;color:#C62828"></span>
+        </div>
+      ` : ""}
+    `;
+    box.appendChild(row);
+  });
+
+  const result = el("resultBox");
+  if (stepDone >= steps.length) {
+    const c = calc(p);
+    result.style.display = "block";
+    result.textContent = `完成！利益は ${fmt(c.profit)}円 です。`;
+  } else {
+    result.style.display = "none";
+    const btn = el("stepCheck");
+    const input = el("stepAns");
+    if (btn && input) {
+      const check = () => {
+        const val = Number(String(input.value).replace(/,/g,""));
+        if (val === steps[stepDone].answer) {
+          stepDone++;
+          renderSteps();
+        } else {
+          el("stepMsg").textContent = "もう一度！";
+        }
+      };
+      btn.onclick = check;
+      input.onkeydown = e => { if (e.key === "Enter") check(); };
+    }
+  }
+}
+
+function renderAll() {
+  renderNav();
+  renderStatic();
+  renderFrame();
+  renderSteps();
+  el("play").textContent = playing ? "⏸ 止める" : "▶️ 再生";
+}
+
+function loop(ts) {
+  if (!lastTs) lastTs = ts;
+  const dt = (ts - lastTs) * speed;
+  lastTs = ts;
+  if (playing) {
+    t += dt;
+    if (t >= DURATION) {
+      t = DURATION;
+      playing = false;
+    }
+    renderFrame();
+    el("play").textContent = playing ? "⏸ 止める" : "▶️ 再生";
+  }
+  requestAnimationFrame(loop);
+}
+
+el("speed").oninput = e => {
+  speed = parseFloat(e.target.value);
+  const label = speed <= .25 ? "超ゆっくり" : speed <= .5 ? "ゆっくり" : speed === 1 ? "ふつう" : "はやい";
+  el("speedText").textContent = `${label} ×${speed}`;
+};
+el("timeline").oninput = e => { t = Number(e.target.value); renderFrame(); };
+el("play").onclick = () => { playing = !playing; lastTs = null; renderAll(); };
+el("back").onclick = () => { t = clamp(t-3000,0,DURATION); renderFrame(); };
+el("forward").onclick = () => { t = clamp(t+3000,0,DURATION); renderFrame(); };
+el("start").onclick = () => { t = 0; playing = false; renderAll(); };
+el("end").onclick = () => { t = DURATION; playing = false; renderAll(); };
+
+renderAll();
+requestAnimationFrame(loop);
+window.addEventListener("resize", renderFrame);
+</script>
+</body>
+</html>
